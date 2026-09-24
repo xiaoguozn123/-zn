@@ -1,3 +1,1 @@
-*.DS_Store
-Thumbs.db
-_check_*.png
+.wrangler/
