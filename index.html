@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>小锅zn — AI Video Creator</title>
+<meta name="description" content="小锅zn · AI Video Creator / Video Editor / Short Video Director. I turn ideas into moving images.">
+<style>
+:root{
+  --bg:#050505;
+  --bg2:#111112;
+  --text:#F5F5F7;
+  --text2:#8A8A8F;
+  --muted:#5A5A60;
+  --purple-d:#5A4B8C;
+  --purple:#7665B5;
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --mx:50vw; --my:50vh;
+  --prox:0;           /* 鼠标与人物接近度 0~1 */
+  --scroll:0;         /* 首屏滚动进度 0~1 */
+}
+*{margin:0;padding:0;box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:"SF Pro Display","Helvetica Neue","PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+::selection{background:rgba(118,101,181,.35);color:#fff}
+a{color:inherit;text-decoration:none}
+
+/* ============ 进场遮罩 ============ */
+#loader{
+  position:fixed;inset:0;z-index:100;
+  background:#050505;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:34px;
+  transition:opacity .6s var(--ease),visibility .6s;
+}
+#loader.done{opacity:0;visibility:hidden}
+#loader .hello{
+  font-size:clamp(22px,2.4vw,32px);
+  font-weight:500;letter-spacing:.42em;text-indent:.42em;
+  color:var(--text);
+  opacity:0;animation:fadeIn 0.8s var(--ease) .15s forwards;
+}
+#loader .bar{
+  width:min(200px,40vw);height:1px;background:rgba(118,101,181,.18);overflow:hidden;
+}
+#loader .bar i{
+  display:block;height:100%;width:0;
+  background:var(--purple);
+  animation:load 1.15s var(--ease) .3s forwards;
+}
+@keyframes load{to{width:100%}}
+@keyframes fadeIn{to{opacity:1}}
+
+/* ============ 导航 ============ */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:50;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:28px min(5vw,72px);
+  opacity:0;transform:translateY(-8px);
+  transition:opacity .9s var(--ease) 2.6s,transform .9s var(--ease) 2.6s;
+}
+nav.visible{opacity:1;transform:none}
+.brand{
+  font-size:17px;font-weight:600;letter-spacing:.14em;color:var(--text);
+  transition:color .3s;
+}
+.brand em{font-style:normal;color:var(--purple)}
+.nav-links{display:flex;gap:min(3.4vw,44px);list-style:none}
+.nav-links a{
+  position:relative;
+  font-size:12.5px;font-weight:500;letter-spacing:.22em;
+  color:var(--text2);
+  padding:6px 2px;
+  transition:color .35s var(--ease);
+}
+.nav-links a::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:1px;
+  background:var(--purple);
+  transform:scaleX(0);transform-origin:left;
+  transition:transform .45s var(--ease);
+}
+.nav-links a:hover{color:var(--text)}
+.nav-links a:hover::after{transform:scaleX(1)}
+.nav-links a.active{color:var(--text)}
+.nav-links a.active::after{transform:scaleX(1)}
+
+/* 移动端菜单 */
+.burger{display:none;background:none;border:0;cursor:pointer;width:34px;height:22px;position:relative;z-index:60}
+.burger span{position:absolute;left:4px;right:4px;height:1px;background:var(--text2);transition:.4s var(--ease)}
+.burger span:nth-child(1){top:5px}.burger span:nth-child(2){top:15px}
+.burger.open span:nth-child(1){top:10px;transform:rotate(45deg);background:var(--text)}
+.burger.open span:nth-child(2){top:10px;transform:rotate(-45deg);background:var(--text)}
+.mobile-menu{
+  position:fixed;inset:0;z-index:55;background:rgba(5,5,5,.96);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:38px;
+  opacity:0;visibility:hidden;transition:.5s var(--ease);
+}
+.mobile-menu.open{opacity:1;visibility:visible}
+.mobile-menu a{font-size:20px;letter-spacing:.3em;color:var(--text2);transition:color .3s}
+.mobile-menu a:hover{color:var(--text)}
+
+/* ============ HERO ============ */
+.hero{
+  position:relative;
+  height:100svh;min-height:620px;
+  overflow:hidden;
+}
+/* 底部大环境光（静态，克制的暗夜紫氛围） */
+.hero .ambient{
+  position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(58% 72% at 74% 42%, rgba(90,75,140,.16), transparent 62%),
+    radial-gradient(90% 90% at 50% 110%, rgba(17,17,18,.9), transparent 55%);
+}
+/* 鼠标隐形光源 */
+.hero .mouse-light{
+  position:absolute;inset:-20%;pointer-events:none;
+  background:radial-gradient(340px 340px at var(--mx) var(--my), rgba(118,101,181,.13), transparent 70%);
+  mix-blend-mode:screen;
+  opacity:calc(.55 + var(--prox)*.6);
+}
+/* 滚动压暗层 */
+.hero .dim{
+  position:absolute;inset:0;background:#050505;pointer-events:none;
+  opacity:calc(var(--scroll)*.55);
+}
+
+/* ---- 人物层组 ---- */
+.figure-wrap{
+  position:absolute;top:0;right:1.5vw;bottom:0;
+  width:min(46vw,720px);
+  transform:translateX(calc(var(--scroll)*-16vw));
+  z-index:2;
+}
+.figure{
+  position:relative;width:100%;height:100%;
+}
+/* 所有动态值（接近度/滚动/呼吸）统一由 JS 写入 CSS 变量，避免与动画冲突 */
+.layer{position:absolute;inset:-6%;background-size:contain;background-position:center bottom;background-repeat:no-repeat;will-change:transform,opacity,filter}
+/* 背景层：照片背景（素材已长羽化 + CSS 径向渐晕二次柔化，边缘完全溶解），位移最小（2px） */
+.layer.bg{
+  background-image:url("assets/bg_2x.webp");
+  filter:brightness(calc(.95 + var(--prox,0)*.12));
+  transform:translate(calc(var(--px-bg,0)*1px),calc(var(--py-bg,0)*1px)) scale(1.06);
+  -webkit-mask-image:radial-gradient(72% 78% at 50% 46%, #000 30%, rgba(0,0,0,.58) 62%, rgba(0,0,0,0) 97%);
+  mask-image:radial-gradient(72% 78% at 50% 46%, #000 30%, rgba(0,0,0,.58) 62%, rgba(0,0,0,0) 97%);
+}
+/* 人物层：羽化透明边缘 + 位移稍大（4px）+ JS 呼吸缩放 */
+.layer.subject{background-image:url("assets/subject_2x.webp");
+  filter:brightness(calc(1 + var(--prox,0)*.1));
+  transform:translate(calc(var(--px-sub,0)*1px),calc(var(--py-sub,0)*1px)) scale(var(--subj-scale,1));
+  -webkit-mask-image:radial-gradient(84% 90% at 50% 46%, #000 54%, rgba(0,0,0,.74) 78%, rgba(0,0,0,0) 100%);
+  mask-image:radial-gradient(84% 90% at 50% 46%, #000 54%, rgba(0,0,0,.74) 78%, rgba(0,0,0,0) 100%);
+}
+/* 轮廓光层：右侧暗夜紫轮廓光，位移最大（7px），随接近度/滚动增强，JS 呼吸 */
+.layer.rim{
+  background:radial-gradient(46% 52% at 66% 34%, rgba(118,101,181,.32), transparent 68%);
+  mix-blend-mode:screen;
+  transform:translate(calc(var(--px-rim,0)*1px),calc(var(--py-rim,0)*1px));
+  opacity:calc(.66 + var(--prox,0)*.5 + var(--scroll,0)*.4 + var(--rim-breath,0));
+}
+
+/* 人物整体浮现动画（进场） */
+.figure{
+  opacity:0;
+  animation:emerge 1.1s var(--ease) 1.55s forwards;
+}
+@keyframes emerge{
+  0%{opacity:0;filter:brightness(0)}
+  30%{opacity:1;filter:brightness(.3)}
+  70%{filter:brightness(.7)}
+  100%{opacity:1;filter:brightness(1)}
+}
+
+/* 人物 hover 提示 */
+.explore-hint{
+  position:absolute;right:max(4vw,32px);bottom:12vh;z-index:6;
+  font-size:11px;letter-spacing:.34em;color:var(--purple);
+  opacity:calc((var(--prox) - .35)*2);
+  pointer-events:none;white-space:nowrap;
+  transition:opacity .5s var(--ease);
+}
+.explore-hint .arrow{display:inline-block;margin-left:8px;transition:transform .6s var(--ease)}
+
+/* ---- 左侧文字 ---- */
+.hero-copy{
+  position:absolute;z-index:5;
+  left:min(10vw,150px);top:50%;
+  transform:translateY(calc(-50% - var(--scroll)*14vh));
+  opacity:calc(1 - var(--scroll)*1.5);
+  max-width:44vw;
+}
+.hero-copy .title{
+  font-size:clamp(56px,7.6vw,118px);
+  font-weight:800;letter-spacing:.015em;line-height:1.04;
+  background:linear-gradient(178deg,#ffffff 8%,#d7d7e0 38%,#9a9aa8 52%,#cfcfda 68%,#f0f0f5 92%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:blur(16px);opacity:0;
+  animation:titleIn 1s var(--ease) 2.05s forwards;
+}
+@keyframes titleIn{to{filter:blur(0);opacity:1}}
+.hero-copy .role{
+  position:relative;
+  margin-top:14px;
+  font-size:clamp(17px,1.9vw,27px);font-weight:600;
+  letter-spacing:.34em;
+  padding:11px 0;
+  width:fit-content;min-width:min(24vw,340px);
+  opacity:0;transform:translateY(14px);
+  animation:riseIn .8s var(--ease) 2.5s forwards;
+}
+/* 上下细紫线，两端渐隐 */
+.hero-copy .role::before,
+.hero-copy .role::after{
+  content:"";position:absolute;left:0;right:0;height:1px;
+  background:linear-gradient(90deg, transparent, rgba(118,101,181,.85) 18%, rgba(118,101,181,.85) 82%, transparent);
+}
+.hero-copy .role::before{top:0}
+.hero-copy .role::after{bottom:0}
+.hero-copy .role .ai{color:var(--purple)}
+.hero-copy .role .rest{color:var(--text)}
+.hero-copy .slogan{
+  margin-top:22px;
+  font-size:clamp(14px,1.25vw,17px);font-weight:400;
+  color:var(--text2);letter-spacing:.05em;line-height:1.7;
+  opacity:0;transform:translateY(14px);
+  animation:riseIn .8s var(--ease) 2.72s forwards;
+}
+@keyframes riseIn{to{opacity:1;transform:none}}
+
+/* 左下角滚动提示 */
+.scroll-hint{
+  position:absolute;left:min(6vw,84px);bottom:5vh;z-index:5;
+  display:flex;align-items:center;gap:14px;
+  font-size:10.5px;letter-spacing:.34em;color:var(--muted);
+  opacity:0;animation:fadeIn 1s var(--ease) 3.1s forwards;
+  transition:opacity .5s;
+}
+.scroll-hint svg{display:block}
+.scroll-hint .chev{animation:bob 2.6s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+
+/* ============ 通用区块头部 ============ */
+section{position:relative}
+.sec-head{padding:20vh min(6vw,84px) 8vh}
+#more .sec-head{padding-top:8vh}
+.sec-head .label{
+  font-size:11px;letter-spacing:.4em;color:var(--purple);
+  margin-bottom:22px;
+}
+.sec-head h2{
+  font-size:clamp(32px,4.2vw,58px);font-weight:700;letter-spacing:.02em;color:var(--text);
+}
+
+/* ============ 02 SELECTED WORKS ============ */
+.works-list{padding:0 min(6vw,84px) 12vh}
+/* 分类大标题：AI VIDEO / VLOG */
+.work-group{
+  display:flex;align-items:baseline;gap:2.4vw;flex-wrap:wrap;
+  padding-bottom:2.6vh;margin-bottom:7vh;
+  border-bottom:1px solid #141416;
+}
+.wg-title{
+  font-size:clamp(30px,3.6vw,50px);font-weight:800;line-height:1;
+  letter-spacing:.005em;color:var(--text);
+}
+.wg-title .hl{color:var(--purple)}
+.wg-title .cn{
+  font-size:clamp(17px,1.5vw,23px);font-weight:600;
+  color:var(--text2);letter-spacing:.3em;margin-left:1.6vw;
+}
+.wg-cnt{font-size:11px;letter-spacing:.3em;color:var(--muted);margin-left:auto}
+/* 作品总览索引：进入区块先看全局，再逐件细看 */
+.works-index{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:26px 24px;
+  padding:0 min(6vw,84px) 13vh;
+}
+.wi-card{
+  display:block;text-align:left;cursor:pointer;
+  background:none;border:none;padding:0;color:inherit;font:inherit;
+  text-decoration:none;
+}
+.wi-thumb{
+  position:relative;overflow:hidden;aspect-ratio:16/9;
+  background:#0b0b0c;border:1px solid #17171a;
+  transition:border-color .5s var(--ease);
+}
+.wi-thumb img{
+  width:100%;height:100%;object-fit:cover;display:block;
+  filter:brightness(.6) saturate(.85);
+  transition:transform 1s var(--ease),filter .6s var(--ease);
+}
+.wi-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(5,5,5,.15),rgba(5,5,5,.62));
+  transition:opacity .5s var(--ease);
+}
+.wi-card:hover .wi-thumb{border-color:rgba(118,101,181,.5)}
+.wi-card:hover .wi-thumb img{transform:scale(1.05);filter:brightness(.92) saturate(1)}
+.wi-card:hover .wi-overlay{opacity:.45}
+.wi-row{display:flex;align-items:baseline;gap:12px;margin-top:15px}
+.wi-num{
+  font-size:20px;font-weight:800;line-height:1;color:var(--purple);
+  font-variant-numeric:tabular-nums;letter-spacing:-.01em;
+}
+.wi-name{
+  font-size:13.5px;color:var(--text2);letter-spacing:.02em;
+  transition:color .4s var(--ease);
+}
+.wi-card:hover .wi-name{color:var(--text)}
+.wi-kind{font-size:9.5px;letter-spacing:.22em;color:var(--muted);margin-left:auto;white-space:nowrap}
+.work{
+  padding:0 0 13vh;
+  cursor:pointer;
+  scroll-margin-top:12vh;
+}
+.work:last-child{padding-bottom:6vh}
+.work-meta{
+  display:flex;align-items:baseline;gap:1.7vw;
+  padding-bottom:26px;
+}
+/* 序号：大号紫色数字，醒目 */
+.work-meta .num{
+  position:relative;
+  font-size:clamp(26px,3vw,46px);font-weight:800;line-height:.9;
+  letter-spacing:-.015em;color:var(--purple);
+  font-variant-numeric:tabular-nums;
+  transition:color .45s var(--ease),text-shadow .5s var(--ease);
+}
+.work-meta .num::after{
+  content:'';position:absolute;left:0;right:.04em;bottom:-9px;height:1px;
+  background:linear-gradient(90deg,var(--purple),rgba(118,101,181,0));
+  opacity:.55;transition:opacity .45s var(--ease);
+}
+.work:hover .work-meta .num{color:#9a8ad9;text-shadow:0 0 30px rgba(118,101,181,.5)}
+.work:hover .work-meta .num::after{opacity:1}
+.work-meta .name{
+  font-size:clamp(21px,2.5vw,32px);font-weight:600;letter-spacing:.01em;
+  color:var(--text2);
+  transition:color .45s var(--ease),transform .55s var(--ease);
+}
+.work-meta .type{
+  margin-left:auto;font-size:11px;letter-spacing:.24em;color:var(--muted);
+  transition:color .45s var(--ease);
+}
+.work-media{
+  position:relative;overflow:visible;
+  background:transparent;
+  display:flex;justify-content:center;
+}
+/* 封面完整展示（不裁切），高度受控：一屏内能看到完整作品版面，不占满全屏 */
+.work-media img{
+  display:block;width:auto;height:auto;
+  max-width:100%;max-height:58vh;
+  border:1px solid #141416;
+  transition:transform 1.1s var(--ease),filter .7s var(--ease);
+  filter:brightness(.92);
+}
+.work-media.portrait img{max-height:76vh}
+.work-arrow{
+  position:absolute;right:calc(var(--ov,0px) + 26px);bottom:22px;
+  font-size:18px;color:var(--purple);
+  opacity:0;transform:translateX(-10px);
+  transition:opacity .45s var(--ease),transform .55s var(--ease);
+}
+.work-play{
+  position:absolute;left:calc(var(--ov,0px) + 26px);bottom:22px;
+  font-size:10.5px;letter-spacing:.34em;color:var(--text2);
+  display:flex;align-items:center;gap:10px;
+  opacity:0;transform:translateY(6px);
+  transition:opacity .5s var(--ease),transform .5s var(--ease);
+}
+.work:hover .work-media img{transform:scale(1.028);filter:brightness(1)}
+.work:hover .work-meta .name{color:var(--text);transform:translateX(10px)}
+.work:hover .work-meta .type{color:var(--purple)}
+.work:hover .work-arrow{opacity:1;transform:none}
+.work:hover .work-play{opacity:1;transform:none}
+
+/* ============ 03 MORE WORKS ============ */
+.more-list{padding:0 min(6vw,84px) 20vh}
+.more-group{margin-bottom:11vh}
+.more-group:last-child{margin-bottom:0}
+.more-group-head{
+  display:flex;align-items:baseline;gap:20px;
+  margin-bottom:36px;padding-bottom:18px;
+  border-bottom:1px solid #141416;
+}
+.more-group-head h3{
+  font-size:clamp(18px,1.9vw,25px);font-weight:600;color:var(--text);letter-spacing:.02em;
+}
+.more-group-head .cnt{font-size:10.5px;letter-spacing:.26em;color:var(--muted)}
+.more-group-head.lv1 h3{font-size:clamp(28px,3.2vw,44px);font-weight:700}
+.lv2-head{
+  display:flex;align-items:baseline;gap:16px;
+  margin:0 0 24px;
+  font-size:clamp(18px,1.9vw,25px);font-weight:600;color:var(--text);letter-spacing:.02em;
+}
+.lv2-head .cnt{font-size:10.5px;letter-spacing:.26em;color:var(--muted)}
+.sub-head{
+  display:flex;align-items:baseline;gap:14px;
+  margin:0 0 20px;
+}
+.sub-head .name{font-size:13px;font-weight:600;color:var(--purple);letter-spacing:.22em}
+.sub-head .cnt{font-size:10px;letter-spacing:.22em;color:var(--muted)}
+.sub-group{margin-bottom:9vh}
+.sub-group:last-child{margin-bottom:0}
+.m-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:28px}
+.m-card{cursor:pointer;margin:0}
+.m-thumb{
+  position:relative;overflow:hidden;background:#0b0b0c;
+  border:1px solid #141416;aspect-ratio:16/9;
+}
+.m-grid.portrait .m-thumb{aspect-ratio:3/4}
+.m-grid.portrait .m-thumb img{object-position:50% 22%}
+.m-thumb img{
+  width:100%;height:100%;object-fit:cover;display:block;
+  transition:transform 1s var(--ease),filter .6s var(--ease);
+  filter:brightness(.9);
+}
+.m-card:hover .m-thumb img{transform:scale(1.03);filter:brightness(1)}
+.m-arrow{
+  position:absolute;top:14px;right:14px;
+  font-size:14px;color:var(--purple);
+  opacity:0;transform:translateX(-8px);
+  transition:opacity .45s var(--ease),transform .55s var(--ease);
+}
+.m-card:hover .m-arrow{opacity:1;transform:none}
+.m-card h4{
+  font-size:14px;font-weight:500;color:var(--text2);
+  margin-top:14px;letter-spacing:.04em;
+  transition:color .4s var(--ease);
+}
+.m-card .tag{
+  display:block;font-size:10px;letter-spacing:.22em;
+  color:var(--muted);margin-top:7px;
+  transition:color .4s var(--ease);
+}
+.m-card:hover h4{color:var(--text)}
+.m-card:hover .tag{color:var(--purple)}
+/* 解说类排版式封面（抖音封面图无法抓取，用站内视觉语言生成） */
+.m-grid.typo5{grid-template-columns:repeat(5,1fr)}
+.m-grid.typo4{grid-template-columns:repeat(4,1fr)}
+.m-grid.typo3{grid-template-columns:repeat(3,1fr)}
+.m-grid.typo2{grid-template-columns:repeat(2,1fr)}
+.m-thumb.r34{aspect-ratio:3/4}
+.m-thumb.typo{
+  aspect-ratio:3/4;
+  display:flex;flex-direction:column;align-items:flex-start;
+  padding:22px 20px;
+  background:
+    radial-gradient(72% 52% at 82% 16%, rgba(118,101,181,.17), transparent 62%),
+    radial-gradient(52% 42% at 16% 92%, rgba(90,75,140,.11), transparent 72%),
+    linear-gradient(160deg,#101014 0%,#0a0a0c 55%,#060607 100%);
+  transition:border-color .45s var(--ease);
+}
+.tc-idx{font-size:9.5px;letter-spacing:.3em;color:var(--purple)}
+.tc-name{
+  margin-top:auto;font-size:clamp(18px,1.7vw,25px);font-weight:700;
+  color:var(--text);letter-spacing:.06em;line-height:1.35;
+}
+.tc-sub{font-size:9.5px;letter-spacing:.24em;color:var(--muted);margin-top:9px}
+.tc-watch{
+  margin-top:16px;font-size:10px;letter-spacing:.22em;color:var(--purple);
+  opacity:0;transform:translateY(6px);
+  transition:opacity .5s var(--ease),transform .5s var(--ease);
+}
+.m-card:hover .tc-watch{opacity:1;transform:none}
+.m-card:hover .m-thumb.typo{border-color:rgba(118,101,181,.45)}
+.m-card:hover .tc-name{color:#fff}
+
+/* ============ 04 WHAT I DO ============ */
+.caps{
+  padding:0 min(6vw,84px) 20vh;
+  display:grid;grid-template-columns:repeat(2,1fr);
+  gap:1px;background:#141416;
+  border-top:1px solid #141416;border-left:1px solid #141416;
+  background-clip:content-box;
+}
+.cap{
+  background:#050505;
+  padding:clamp(30px,3.6vw,52px);
+  border-right:1px solid #141416;border-bottom:1px solid #141416;
+  display:flex;gap:clamp(18px,2vw,32px);
+  transition:background .6s var(--ease);
+  position:relative;
+}
+.cap::after{
+  content:"";position:absolute;left:0;top:0;height:1px;width:0;
+  background:var(--purple);transition:width .7s var(--ease);
+}
+.cap:hover{background:#0a0a0b}
+.cap:hover::after{width:100%}
+.cap-idx{font-size:11px;letter-spacing:.2em;color:var(--muted);padding-top:6px}
+.cap-body h3{
+  font-size:clamp(19px,1.9vw,25px);font-weight:600;color:var(--text);
+  margin-bottom:16px;letter-spacing:.01em;
+}
+.cap-body p{font-size:14px;line-height:2;color:var(--text2);max-width:44ch}
+
+/* ============ 04 ABOUT ============ */
+.about-grid{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,400px);
+  gap:min(6vw,96px);align-items:center;
+  padding:0 min(6vw,84px) 20vh;
+}
+.about-text{max-width:min(74ch,900px)}
+.about-photo{position:relative;align-self:center}
+.about-photo img{width:100%;display:block}
+.about-text .lead{
+  font-size:clamp(17px,1.7vw,22px);line-height:1.95;color:var(--text);
+  margin-bottom:34px;font-weight:400;
+}
+.about-text p{
+  font-size:14.5px;line-height:2.15;color:var(--text2);margin-bottom:24px;
+}
+.about-text .aside{
+  margin-top:38px;padding-left:20px;border-left:1px solid var(--purple-d);
+  color:var(--muted);font-size:13px;line-height:2;
+}
+
+/* ============ 05 CONTACT ============ */
+.contact-body{padding:0 min(6vw,84px) 16vh}
+.contact-title{
+  font-size:clamp(48px,9vw,132px);font-weight:800;line-height:.98;letter-spacing:-.01em;
+  background:linear-gradient(178deg,#ffffff 10%,#d5d5de 45%,#8f8f9c 62%,#e6e6ee 95%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  margin-bottom:14vh;
+}
+.contact-title .dot{color:var(--purple);-webkit-text-fill-color:var(--purple)}
+.contact-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:1px;background:#141416;border:1px solid #141416;
+}
+.c-item{background:#050505;padding:clamp(24px,2.6vw,36px)}
+.c-label{display:block;font-size:10.5px;letter-spacing:.34em;color:var(--purple);margin-bottom:16px}
+.c-value{
+  display:inline-block;font-size:15px;color:var(--text);letter-spacing:.02em;
+  position:relative;transition:color .4s var(--ease);
+}
+a.c-value::after{
+  content:"";position:absolute;left:0;right:0;bottom:-5px;height:1px;
+  background:var(--purple);transform:scaleX(0);transform-origin:left;
+  transition:transform .5s var(--ease);
+}
+a.c-value:hover::after{transform:scaleX(1)}
+.c-value.placeholder{color:var(--muted);font-size:14px}
+.c-value.placeholder::after{display:none}
+
+footer{
+  padding:56px min(6vw,84px);
+  border-top:1px solid #141416;
+  display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;
+  font-size:11px;letter-spacing:.28em;color:var(--muted);
+}
+
+/* ============ 作品播放弹层 ============ */
+.lb{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(3,3,4,.94);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  display:flex;flex-direction:column;
+  opacity:0;visibility:hidden;
+  transition:opacity .5s var(--ease),visibility .5s;
+}
+.lb.open{opacity:1;visibility:visible}
+.lb-head{
+  display:flex;justify-content:space-between;align-items:center;gap:20px;
+  padding:26px min(4vw,48px);
+  border-bottom:1px solid rgba(118,101,181,.16);
+}
+.lb-title{display:flex;align-items:baseline;gap:18px;min-width:0}
+.lb-num{font-size:11px;letter-spacing:.2em;color:var(--purple)}
+.lb-title h4{font-size:clamp(15px,1.5vw,19px);font-weight:600;color:var(--text);white-space:nowrap}
+.lb-type{font-size:10.5px;letter-spacing:.24em;color:var(--muted)}
+.lb-actions{display:flex;align-items:center;gap:8px}
+.lb-tab{
+  background:none;border:1px solid #24242a;color:var(--text2);
+  font:inherit;font-size:10.5px;letter-spacing:.24em;
+  padding:9px 16px;cursor:pointer;
+  transition:.4s var(--ease);
+}
+.lb-tab:hover{color:var(--text);border-color:#33333c}
+.lb-tab.on{color:var(--text);border-color:var(--purple);background:rgba(118,101,181,.12)}
+.lb-close{
+  background:none;border:1px solid #24242a;color:var(--text2);
+  width:38px;height:38px;cursor:pointer;font-size:14px;margin-left:10px;
+  transition:.4s var(--ease);
+}
+.lb-close:hover{color:var(--text);border-color:var(--purple)}
+.lb-stage{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding:min(3vh,32px) min(4vw,48px) min(5vh,56px);min-height:0;
+}
+.lb-stage video,.lb-stage img{
+  max-width:100%;max-height:100%;display:block;
+  background:#000;
+}
+/* 视频按自身比例完整播放：横版 16:9、竖版 9:16 都不裁切 */
+.lb-stage video{max-width:min(100%,1400px);width:auto;height:auto;object-fit:contain;box-shadow:0 30px 90px rgba(0,0,0,.7)}
+.lb-stage img{width:auto;object-fit:contain}
+/* 抖音外链视图 */
+.lb-link{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:18px;text-align:center;max-width:560px;padding:20px;
+}
+.lb-link-tag{font-size:10px;letter-spacing:.32em;color:var(--purple)}
+.lb-link-title{font-size:clamp(28px,3.6vw,50px);font-weight:700;color:var(--text);letter-spacing:.02em;line-height:1.4}
+.lb-link-note{font-size:12px;line-height:2;color:var(--muted);letter-spacing:.06em}
+.lb-btn{
+  margin-top:12px;display:inline-block;
+  border:1px solid rgba(118,101,181,.5);color:var(--text);
+  background:rgba(118,101,181,.08);
+  padding:15px 36px;font-size:11px;letter-spacing:.3em;text-decoration:none;
+  transition:.45s var(--ease);
+}
+.lb-btn:hover{background:rgba(118,101,181,.22);border-color:var(--purple)}
+
+/* ============ 区块浮现 ============ */
+.reveal{opacity:0;transform:translateY(40px);transition:opacity 1s var(--ease),transform 1s var(--ease)}
+.reveal.in{opacity:1;transform:none}
+
+/* ============ 响应式 ============ */
+@media (max-width:860px){
+  nav{padding:22px 6vw}
+  .nav-links{display:none}
+  .burger{display:block}
+  .figure-wrap{
+    right:50%;transform:translate(50%,0) scale(calc(1 + var(--scroll)*.18));
+    width:min(86vw,560px);
+    bottom:auto;height:64vh;top:8vh;
+  }
+  .hero-copy{
+    left:6vw;right:6vw;top:auto;bottom:13vh;max-width:none;
+    transform:translateY(calc(var(--scroll)*8vh));
+  }
+  .hero-copy .title{font-size:clamp(52px,15vw,84px)}
+  .hero-copy .role{font-size:15px;margin-top:8px;padding:9px 0}
+  .hero-copy .slogan{margin-top:14px;font-size:13.5px}
+  .scroll-hint{bottom:3.5vh}
+  .explore-hint{display:none}
+  .layer.rim{background:radial-gradient(50% 46% at 64% 32%, rgba(118,101,181,.3), transparent 68%)}
+
+  /* 下方区块移动端重排 */
+  .sec-head{padding:14vh 6vw 6vh}
+  .works-list{padding:0 6vw 14vh}
+  .work{padding-bottom:9vh}
+  .work-meta{flex-wrap:wrap;gap:12px;padding-bottom:18px}
+  .work-meta .type{margin-left:0;width:100%}
+  .work-group{margin-bottom:5vh}
+  .wg-title .cn{margin-left:0;width:100%}
+  .more-list{padding:0 6vw 14vh}
+  .more-group{margin-bottom:9vh}
+  .m-grid{grid-template-columns:repeat(2,1fr);gap:18px}
+  .m-card h4{font-size:13px}
+  /* 总览索引移动端两列 */
+  .works-index{grid-template-columns:repeat(2,1fr);gap:16px 14px;padding:0 6vw 9vh}
+  .wi-num{font-size:16px}
+  .wi-name{font-size:12px}
+  .wi-kind{display:none}
+  .work-meta .num{font-size:clamp(26px,7.5vw,36px)}
+  .work-media img{filter:brightness(.96);max-height:52vh}
+  .work-media.portrait img{max-height:66vh}
+  .work-arrow{opacity:1;transform:none;right:calc(var(--ov,0px) + 18px);bottom:16px}
+  .work-play{display:none}
+  .cap{padding:26px 6vw;flex-direction:column;gap:12px}
+  .cap-body p{max-width:none;font-size:13.5px}
+  .about-grid{padding:0 6vw 14vh;grid-template-columns:1fr;gap:44px}
+  .about-photo{max-width:min(70vw,340px)}
+  .contact-body{padding:0 6vw 12vh}
+  .contact-title{margin-bottom:8vh}
+  .contact-grid{grid-template-columns:1fr}
+  footer{padding:40px 6vw;font-size:10px}
+  .lb-head{flex-direction:column;align-items:flex-start;padding:18px 6vw;gap:14px}
+  .lb-title h4{white-space:normal}
+  .lb-actions{width:100%}
+  .lb-close{margin-left:auto}
+  .lb-stage{padding:16px 4vw 24px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .layer{transform:none!important}
+}
+</style>
+</head>
+<body>
+
+<!-- 进场动画 -->
+<div id="loader">
+  <div class="hello">HELLO.</div>
+  <div class="bar"><i></i></div>
+</div>
+
+<!-- 导航 -->
+<nav id="nav">
+  <a class="brand" href="#top">小锅<em>zn</em></a>
+  <ul class="nav-links">
+    <li><a href="#works" class="active">WORKS</a></li>
+    <li><a href="#about">ABOUT</a></li>
+    <li><a href="#contact">CONTACT</a></li>
+  </ul>
+  <button class="burger" id="burger" aria-label="菜单"><span></span><span></span></button>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#works">WORKS</a>
+  <a href="#about">ABOUT</a>
+  <a href="#contact">CONTACT</a>
+</div>
+
+<!-- HERO -->
+<header class="hero" id="top">
+  <div class="ambient"></div>
+
+  <div class="figure-wrap" id="figureWrap">
+    <div class="figure">
+      <div class="layer bg"></div>
+      <div class="layer subject"></div>
+      <div class="layer rim"></div>
+    </div>
+  </div>
+
+  <div class="mouse-light" id="mouseLight"></div>
+  <div class="dim"></div>
+
+  <div class="hero-copy">
+    <h1 class="title">小锅zn</h1>
+    <div class="role"><span class="ai">AI</span> <span class="rest">VIDEO CREATOR</span></div>
+    <p class="slogan">I turn ideas into<br>moving images.</p>
+  </div>
+
+  <div class="explore-hint">START EXPLORING<span class="arrow">→</span></div>
+
+  <div class="scroll-hint">
+    <span>SCROLL TO EXPLORE</span>
+    <svg width="10" height="26" viewBox="0 0 10 26" fill="none">
+      <line x1="5" y1="0" x2="5" y2="20" stroke="#7665B5" stroke-width="1" opacity=".55"/>
+      <path class="chev" d="M1 17 L5 24 L9 17" stroke="#7665B5" stroke-width="1" fill="none"/>
+    </svg>
+  </div>
+</header>
+
+<!-- ============ 02 SELECTED WORKS ============ -->
+<section id="works" class="works">
+  <div class="sec-head reveal">
+    <div class="label">02 — SELECTED WORKS</div>
+    <h2>精选作品</h2>
+  </div>
+
+  <!-- 总览索引：进入区块先预览全局 -->
+  <div class="works-index reveal">
+    <a class="wi-card" href="#w-01">
+      <div class="wi-thumb"><img loading="lazy" src="assets/works/work-01-poster.webp" alt="凤尾高中生"><span class="wi-overlay"></span></div>
+      <div class="wi-row"><span class="wi-num">01</span><span class="wi-name">凤尾高中生</span><span class="wi-kind">AI ANIMATION</span></div>
+    </a>
+    <a class="wi-card" href="#w-02">
+      <div class="wi-thumb"><img loading="lazy" src="assets/works/work-02-poster.webp" alt="爷爷的青皮核桃"><span class="wi-overlay"></span></div>
+      <div class="wi-row"><span class="wi-num">02</span><span class="wi-name">爷爷的青皮核桃</span><span class="wi-kind">AI ANIMATION</span></div>
+    </a>
+    <a class="wi-card" href="#w-03">
+      <div class="wi-thumb"><img loading="lazy" src="assets/works/work-03-poster.webp" alt="神奇罐子"><span class="wi-overlay"></span></div>
+      <div class="wi-row"><span class="wi-num">03</span><span class="wi-name">神奇罐子</span><span class="wi-kind">AI VIDEO</span></div>
+    </a>
+    <a class="wi-card" href="#w-05">
+      <div class="wi-thumb"><img loading="lazy" src="assets/works/work-04-poster.webp" alt="准大一 开学焦虑"><span class="wi-overlay"></span></div>
+      <div class="wi-row"><span class="wi-num">04</span><span class="wi-name">准大一 · 开学焦虑</span><span class="wi-kind">VLOG</span></div>
+    </a>
+    <a class="wi-card" href="#w-06">
+      <div class="wi-thumb"><img loading="lazy" src="assets/works/work-05-poster.webp" alt="回村＝逃离"><span class="wi-overlay"></span></div>
+      <div class="wi-row"><span class="wi-num">05</span><span class="wi-name">回村＝逃离</span><span class="wi-kind">VLOG</span></div>
+    </a>
+    <a class="wi-card" href="#w-04">
+      <div class="wi-thumb"><img loading="lazy" src="assets/works/mix-01-cover.webp" alt="旅行日记"><span class="wi-overlay"></span></div>
+      <div class="wi-row"><span class="wi-num">06</span><span class="wi-name">旅行日记</span><span class="wi-kind">混剪</span></div>
+    </a>
+  </div>
+
+  <div class="works-list">
+
+    <div class="work-group reveal">
+      <h3 class="wg-title"><span class="hl">AI</span> VIDEO</h3>
+      <span class="wg-cnt">3 WORKS</span>
+    </div>
+
+    <article id="w-01" class="work reveal" data-title="凤尾高中生" data-type="AI ANIMATION" data-dur="02:46"
+             data-video="assets/works/work-01.mp4" data-poster="assets/works/work-01-poster.webp"
+             data-process="assets/works/work-01-process.webp">
+      <div class="work-meta">
+        <span class="num">01</span>
+        <h3 class="name">凤尾高中生</h3>
+        <span class="type">AI ANIMATION · 02:46</span>
+      </div>
+      <div class="work-media">
+        <img loading="lazy" src="assets/works/work-01-poster.webp" alt="凤尾高中生">
+        <span class="work-arrow">→</span>
+        <span class="work-play">PLAY</span>
+      </div>
+    </article>
+
+    <article id="w-02" class="work reveal" data-title="爷爷的青皮核桃" data-type="AI ANIMATION" data-dur="02:33"
+             data-video="assets/works/work-02.mp4" data-poster="assets/works/work-02-poster.webp"
+             data-process="assets/works/work-02-process.webp">
+      <div class="work-meta">
+        <span class="num">02</span>
+        <h3 class="name">爷爷的青皮核桃</h3>
+        <span class="type">AI ANIMATION · 02:33</span>
+      </div>
+      <div class="work-media">
+        <img loading="lazy" src="assets/works/work-02-poster.webp" alt="爷爷的青皮核桃">
+        <span class="work-arrow">→</span>
+        <span class="work-play">PLAY</span>
+      </div>
+    </article>
+
+    <article id="w-03" class="work reveal" data-title="神奇罐子" data-type="AI VIDEO" data-dur="01:24"
+             data-video="assets/works/work-03.mp4" data-poster="assets/works/work-03-poster.webp"
+             data-process="assets/works/work-03-process.webp">
+      <div class="work-meta">
+        <span class="num">03</span>
+        <h3 class="name">神奇罐子</h3>
+        <span class="type">AI VIDEO · 01:24</span>
+      </div>
+      <div class="work-media">
+        <img loading="lazy" src="assets/works/work-03-poster.webp" alt="神奇罐子">
+        <span class="work-arrow">→</span>
+        <span class="work-play">PLAY</span>
+      </div>
+    </article>
+
+    <div class="work-group reveal">
+      <h3 class="wg-title">VLOG <span class="cn">进阶版</span></h3>
+      <span class="wg-cnt">2 WORKS</span>
+    </div>
+
+    <article id="w-05" class="work reveal" data-title="准大一 · 开学焦虑" data-type="VLOG" data-dur="03:08"
+             data-video="assets/works/work-04.mp4" data-poster="assets/works/work-04-poster.webp"
+             data-process="assets/works/work-04-process.webp">
+      <div class="work-meta">
+        <span class="num">04</span>
+        <h3 class="name">准大一 · 开学焦虑</h3>
+        <span class="type">VLOG · 03:08</span>
+      </div>
+      <div class="work-media">
+        <img loading="lazy" src="assets/works/work-04-poster.webp" alt="准大一 开学焦虑">
+        <span class="work-arrow">→</span>
+        <span class="work-play">PLAY</span>
+      </div>
+    </article>
+
+    <article id="w-06" class="work reveal" data-title="回村＝逃离" data-type="VLOG" data-dur="04:29"
+             data-video="assets/works/work-05.mp4" data-poster="assets/works/work-05-poster.webp"
+             data-process="assets/works/work-05-process.webp">
+      <div class="work-meta">
+        <span class="num">05</span>
+        <h3 class="name">回村＝逃离</h3>
+        <span class="type">VLOG · 04:29</span>
+      </div>
+      <div class="work-media">
+        <img loading="lazy" src="assets/works/work-05-poster.webp" alt="回村＝逃离">
+        <span class="work-arrow">→</span>
+        <span class="work-play">PLAY</span>
+      </div>
+    </article>
+
+    <div class="work-group reveal">
+      <h3 class="wg-title">混剪</h3>
+      <span class="wg-cnt">1 WORK</span>
+    </div>
+
+    <article id="w-04" class="work reveal" data-title="旅行日记" data-type="旅行混剪" data-dur="00:38"
+             data-video="assets/works/work-06.mp4" data-poster="assets/works/mix-01-cover.webp"
+             data-process="assets/works/mix-01-proc.webp">
+      <div class="work-meta">
+        <span class="num">06</span>
+        <h3 class="name">旅行日记</h3>
+        <span class="type">旅行混剪 · 00:38</span>
+      </div>
+      <div class="work-media">
+        <img loading="lazy" src="assets/works/mix-01-cover.webp" alt="旅行日记 旅行混剪">
+        <span class="work-arrow">→</span>
+        <span class="work-play">PLAY</span>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ============ 02B MORE WORKS ============ -->
+<section id="more" class="more">
+  <div class="sec-head reveal">
+    <div class="label">03 — MORE WORKS</div>
+    <h2>更多作品</h2>
+  </div>
+  <div class="more-list">
+
+    <div class="more-group reveal">
+      <div class="more-group-head lv1">
+        <h3>解说</h3>
+        <span class="cnt">COMMENTARY · 23 VIDEOS · 抖音</span>
+      </div>
+      <div class="lv2-head">娱乐人物志 <span class="cnt">5 VIDEOS</span></div>
+      <div class="m-grid typo5">
+        <figure class="m-card" data-title="田柾国" data-type="娱乐人物志"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAIpczL7GBSxu2kPDydmtPBBBQ4r-82Sk8U_tVIDaxAJmaYGKLwNS446-fZwV4Ypym?from_tab_name=main&amp;modal_id=7601076744036109602">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/jx-rw-01.jpg" alt="田柾国"><span class="m-arrow">→</span></div>
+          <figcaption><h4>田柾国</h4><span class="tag">娱乐人物志</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="崔胜澈" data-type="娱乐人物志"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAIpczL7GBSxu2kPDydmtPBBBQ4r-82Sk8U_tVIDaxAJmaYGKLwNS446-fZwV4Ypym?from_tab_name=main&amp;modal_id=7617780429734645026">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/jx-rw-02.jpg" alt="崔胜澈"><span class="m-arrow">→</span></div>
+          <figcaption><h4>崔胜澈</h4><span class="tag">娱乐人物志</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="金泰亨" data-type="娱乐人物志"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAIpczL7GBSxu2kPDydmtPBBBQ4r-82Sk8U_tVIDaxAJmaYGKLwNS446-fZwV4Ypym?from_tab_name=main&amp;modal_id=7603303214133349674">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/jx-rw-03.jpg" alt="金泰亨"><span class="m-arrow">→</span></div>
+          <figcaption><h4>金泰亨</h4><span class="tag">娱乐人物志</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="权志龙" data-type="娱乐人物志"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAIpczL7GBSxu2kPDydmtPBBBQ4r-82Sk8U_tVIDaxAJmaYGKLwNS446-fZwV4Ypym?from_tab_name=main&amp;modal_id=7602192514497465627">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/jx-rw-04.jpg" alt="权志龙"><span class="m-arrow">→</span></div>
+          <figcaption><h4>权志龙</h4><span class="tag">娱乐人物志</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="边伯贤" data-type="娱乐人物志"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAIpczL7GBSxu2kPDydmtPBBBQ4r-82Sk8U_tVIDaxAJmaYGKLwNS446-fZwV4Ypym?from_tab_name=main&amp;modal_id=7600334674883317044">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/jx-rw-05.jpg" alt="边伯贤"><span class="m-arrow">→</span></div>
+          <figcaption><h4>边伯贤</h4><span class="tag">娱乐人物志</span></figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="more-group anime reveal">
+      <div class="lv2-head">动漫解说 <span class="cnt">18 VIDEOS</span></div>
+      <div class="sub-group">
+      <div class="sub-head"><span class="name">动漫电影</span><span class="cnt">4 VIDEOS</span></div>
+      <div class="m-grid typo4">
+        <figure class="m-card" data-title="《雪孩子》" data-type="动漫解说 · 动漫电影"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAVoZkD1HVCUb8mj7kTQBCV_q0guAhjNGXZdjqCVMB7w9sR9i6liGEXen7xDorcLkm?from_tab_name=main&amp;modal_id=7611096102087003432">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/dm-01.webp" alt="雪孩子"><span class="m-arrow">→</span></div>
+          <figcaption><h4>《雪孩子》</h4><span class="tag">动漫解说 · 动漫电影</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="《通往夏天的隧道再见的出口》" data-type="动漫解说 · 动漫电影"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAVoZkD1HVCUb8mj7kTQBCV_q0guAhjNGXZdjqCVMB7w9sR9i6liGEXen7xDorcLkm?from_tab_name=main&amp;modal_id=7613322623728110888">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/dm-02.webp" alt="通往夏天的隧道"><span class="m-arrow">→</span></div>
+          <figcaption><h4>《通往夏天的隧道再见的出口》</h4><span class="tag">动漫解说 · 动漫电影</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="《夏日幻魂》" data-type="动漫解说 · 动漫电影"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAVoZkD1HVCUb8mj7kTQBCV_q0guAhjNGXZdjqCVMB7w9sR9i6liGEXen7xDorcLkm?from_tab_name=main&amp;modal_id=7614071520557534464">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/dm-03.webp" alt="夏日幻魂"><span class="m-arrow">→</span></div>
+          <figcaption><h4>《夏日幻魂》</h4><span class="tag">动漫解说 · 动漫电影</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="《狐狸老弟》" data-type="动漫解说 · 动漫电影"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAVoZkD1HVCUb8mj7kTQBCV_q0guAhjNGXZdjqCVMB7w9sR9i6liGEXen7xDorcLkm?from_tab_name=main&amp;modal_id=7612578615305260322">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/dm-04.webp" alt="狐狸老弟"><span class="m-arrow">→</span></div>
+          <figcaption><h4>《狐狸老弟》</h4><span class="tag">动漫解说 · 动漫电影</span></figcaption>
+        </figure>
+      </div>
+    </div>
+
+    </div>
+    <div class="more-group anime reveal">
+      <div class="sub-group">
+      <div class="sub-head"><span class="name">小说改编 · 诡秘之主</span><span class="cnt">4 VIDEOS</span></div>
+      <div class="m-grid typo4">
+        <figure class="m-card" data-title="《诡秘之主》Vol.1" data-type="动漫解说 · 小说改编"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAFNAsCp_7CyU15eYFWljquInZBeHhqEHCjdshUccMXBj8vYQjFNr66xoWxSV7KN1G?modal_id=7623750381432098074">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/dm-05.webp" alt="诡秘之主 尊名"><span class="m-arrow">→</span></div>
+          <figcaption><h4>《诡秘之主》Vol.1</h4><span class="tag">动漫解说 · 小说改编</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="《诡秘之主》Vol.2" data-type="动漫解说 · 小说改编"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAFNAsCp_7CyU15eYFWljquInZBeHhqEHCjdshUccMXBj8vYQjFNr66xoWxSV7KN1G?modal_id=7624084105889615114">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/dm-06.webp" alt="诡秘之主 马甲"><span class="m-arrow">→</span></div>
+          <figcaption><h4>《诡秘之主》Vol.2</h4><span class="tag">动漫解说 · 小说改编</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="《诡秘之主》Vol.3" data-type="动漫解说 · 小说改编"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAFNAsCp_7CyU15eYFWljquInZBeHhqEHCjdshUccMXBj8vYQjFNr66xoWxSV7KN1G?modal_id=7624424784859794714">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/dm-07.webp" alt="诡秘之主 台词"><span class="m-arrow">→</span></div>
+          <figcaption><h4>《诡秘之主》Vol.3</h4><span class="tag">动漫解说 · 小说改编</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="《诡秘之主》Vol.4" data-type="动漫解说 · 小说改编"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAFNAsCp_7CyU15eYFWljquInZBeHhqEHCjdshUccMXBj8vYQjFNr66xoWxSV7KN1G?modal_id=7625946906996395274">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/dm-08.webp" alt="诡秘之主 战力排名"><span class="m-arrow">→</span></div>
+          <figcaption><h4>《诡秘之主》Vol.4</h4><span class="tag">动漫解说 · 小说改编</span></figcaption>
+        </figure>
+      </div>
+    </div>
+
+    </div>
+    <div class="more-group anime reveal">
+      <div class="sub-group">
+      <div class="sub-head"><span class="name">美漫</span><span class="cnt">4 VIDEOS</span></div>
+      <div class="m-grid typo4">
+        <figure class="m-card" data-title="《地狱客栈》Vol.1" data-type="动漫解说 · 美漫"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAVoZkD1HVCUb8mj7kTQBCV_q0guAhjNGXZdjqCVMB7w9sR9i6liGEXen7xDorcLkm?from_tab_name=main&amp;modal_id=7629692804482092342">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/dm-09.webp" alt="地狱客栈 环主"><span class="m-arrow">→</span></div>
+          <figcaption><h4>《地狱客栈》Vol.1</h4><span class="tag">动漫解说 · 美漫</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="《地狱客栈》Vol.2" data-type="动漫解说 · 美漫"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAVoZkD1HVCUb8mj7kTQBCV_q0guAhjNGXZdjqCVMB7w9sR9i6liGEXen7xDorcLkm?from_tab_name=main&amp;modal_id=7641907794056138024">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/dm-10.webp" alt="地狱客栈 曼妙小曲"><span class="m-arrow">→</span></div>
+          <figcaption><h4>《地狱客栈》Vol.2</h4><span class="tag">动漫解说 · 美漫</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="《无敌少侠》Vol.1" data-type="动漫解说 · 美漫"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAjlzS7f_dU1gVKra0w5G0F4VBKFEgQAChKqnhMO-HUxrJPMM3YlzFuwunvnMz9Yqm?from_tab_name=main&amp;modal_id=7641907757238471988&amp;vid=7633373497217109283">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/dm-11.webp" alt="无敌少侠 最夯版小曲"><span class="m-arrow">→</span></div>
+          <figcaption><h4>《无敌少侠》Vol.1</h4><span class="tag">动漫解说 · 美漫</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="《无敌少侠》Vol.2" data-type="动漫解说 · 美漫"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAjlzS7f_dU1gVKra0w5G0F4VBKFEgQAChKqnhMO-HUxrJPMM3YlzFuwunvnMz9Yqm?from_tab_name=main&amp;modal_id=7628935358561914155&amp;vid=7633373497217109283">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/dm-12.webp" alt="无敌少侠 变体马克"><span class="m-arrow">→</span></div>
+          <figcaption><h4>《无敌少侠》Vol.2</h4><span class="tag">动漫解说 · 美漫</span></figcaption>
+        </figure>
+      </div>
+    </div>
+
+    </div>
+    <div class="more-group anime reveal">
+      <div class="sub-group">
+      <div class="sub-head"><span class="name">日漫特摄</span><span class="cnt">4 VIDEOS</span></div>
+      <div class="m-grid typo4">
+        <figure class="m-card" data-title="《假面骑士ZZZ》Vol.1" data-type="动漫解说 · 日漫特摄"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAVoZkD1HVCUb8mj7kTQBCV_q0guAhjNGXZdjqCVMB7w9sR9i6liGEXen7xDorcLkm?from_tab_name=main&amp;modal_id=7619260140092706074">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/dm-13.webp" alt="假面骑士ZZZ 双OP"><span class="m-arrow">→</span></div>
+          <figcaption><h4>《假面骑士ZZZ》Vol.1</h4><span class="tag">动漫解说 · 日漫特摄</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="《假面骑士ZZZ》Vol.2" data-type="动漫解说 · 日漫特摄"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAVoZkD1HVCUb8mj7kTQBCV_q0guAhjNGXZdjqCVMB7w9sR9i6liGEXen7xDorcLkm?from_tab_name=main&amp;modal_id=7621486564131999002">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/dm-14.webp" alt="假面骑士ZZZ 诺克斯"><span class="m-arrow">→</span></div>
+          <figcaption><h4>《假面骑士ZZZ》Vol.2</h4><span class="tag">动漫解说 · 日漫特摄</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="《奥特曼》贝利亚" data-type="动漫解说 · 日漫特摄"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAVoZkD1HVCUb8mj7kTQBCV_q0guAhjNGXZdjqCVMB7w9sR9i6liGEXen7xDorcLkm?from_tab_name=main&amp;modal_id=7615179479530474804">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/dm-15.webp" alt="奥特曼 贝利亚"><span class="m-arrow">→</span></div>
+          <figcaption><h4>《奥特曼》贝利亚</h4><span class="tag">动漫解说 · 日漫特摄</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="《奥特曼》变身" data-type="动漫解说 · 日漫特摄"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAVoZkD1HVCUb8mj7kTQBCV_q0guAhjNGXZdjqCVMB7w9sR9i6liGEXen7xDorcLkm?from_tab_name=main&amp;modal_id=7616627346971430184">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/dm-16.webp" alt="奥特曼 变身"><span class="m-arrow">→</span></div>
+          <figcaption><h4>《奥特曼》变身</h4><span class="tag">动漫解说 · 日漫特摄</span></figcaption>
+        </figure>
+      </div>
+    </div>
+
+    </div>
+    <div class="more-group anime reveal">
+      <div class="sub-group">
+      <div class="sub-head"><span class="name">热点评论</span><span class="cnt">2 VIDEOS</span></div>
+      <div class="m-grid typo2">
+        <figure class="m-card" data-title="为什么说二次元是个诡异的圈子" data-type="动漫解说 · 热点评论"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAVoZkD1HVCUb8mj7kTQBCV_q0guAhjNGXZdjqCVMB7w9sR9i6liGEXen7xDorcLkm?from_tab_name=main&amp;modal_id=7623341926250581294">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/dm-17.webp" alt="二次元诡异的圈子"><span class="m-arrow">→</span></div>
+          <figcaption><h4>《为什么说二次元是个诡异的圈子》</h4><span class="tag">动漫解说 · 热点评论</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="皮克斯抄袭二创？" data-type="动漫解说 · 热点评论"
+                data-link="https://www.douyin.com/user/MS4wLjABAAAAVoZkD1HVCUb8mj7kTQBCV_q0guAhjNGXZdjqCVMB7w9sR9i6liGEXen7xDorcLkm?from_tab_name=main&amp;modal_id=7634136580327853375">
+          <div class="m-thumb r34"><img loading="lazy" src="assets/works/dm-18.webp" alt="皮克斯抄袭二创"><span class="m-arrow">→</span></div>
+          <figcaption><h4>《皮克斯抄袭二创？》</h4><span class="tag">动漫解说 · 热点评论</span></figcaption>
+        </figure>
+      </div>
+    </div>
+    </div>
+
+    <div class="more-group reveal">
+      <div class="more-group-head">
+        <h3>VLOG 系列 · 加油吧，实习生</h3>
+        <span class="cnt">8 EPISODES</span>
+      </div>
+      <div class="m-grid portrait">
+        <figure class="m-card" data-title="实习日记 Vol.1" data-type="VLOG" data-dur="01:39"
+                data-video="assets/works/vlog-01.mp4" data-poster="assets/works/vlog-01-cover.webp">
+          <div class="m-thumb"><img loading="lazy" src="assets/works/vlog-01-cover.webp" alt="实习日记 Vol.1"><span class="m-arrow">→</span></div>
+          <figcaption><h4>实习日记 Vol.1</h4><span class="tag">VLOG · 01:39</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="实习日记 Vol.2" data-type="VLOG" data-dur="01:44"
+                data-video="assets/works/vlog-02.mp4" data-poster="assets/works/vlog-02-cover.webp">
+          <div class="m-thumb"><img loading="lazy" src="assets/works/vlog-02-cover.webp" alt="实习日记 Vol.2"><span class="m-arrow">→</span></div>
+          <figcaption><h4>实习日记 Vol.2</h4><span class="tag">VLOG · 01:44</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="实习日记 Vol.3" data-type="VLOG" data-dur="03:52"
+                data-video="assets/works/vlog-03.mp4" data-poster="assets/works/vlog-03-cover.webp">
+          <div class="m-thumb"><img loading="lazy" src="assets/works/vlog-03-cover.webp" alt="实习日记 Vol.3"><span class="m-arrow">→</span></div>
+          <figcaption><h4>实习日记 Vol.3</h4><span class="tag">VLOG · 03:52</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="实习日记 Vol.4" data-type="VLOG" data-dur="02:46"
+                data-video="assets/works/vlog-04.mp4" data-poster="assets/works/vlog-04-cover.webp">
+          <div class="m-thumb"><img loading="lazy" src="assets/works/vlog-04-cover.webp" alt="实习日记 Vol.4"><span class="m-arrow">→</span></div>
+          <figcaption><h4>实习日记 Vol.4</h4><span class="tag">VLOG · 02:46</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="实习日记 Vol.5" data-type="VLOG" data-dur="02:05"
+                data-video="assets/works/vlog-05.mp4" data-poster="assets/works/vlog-05-cover.webp">
+          <div class="m-thumb"><img loading="lazy" src="assets/works/vlog-05-cover.webp" alt="实习日记 Vol.5"><span class="m-arrow">→</span></div>
+          <figcaption><h4>实习日记 Vol.5</h4><span class="tag">VLOG · 02:05</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="实习日记 Vol.6" data-type="VLOG" data-dur="02:57"
+                data-video="assets/works/vlog-06.mp4" data-poster="assets/works/vlog-06-cover.webp">
+          <div class="m-thumb"><img loading="lazy" src="assets/works/vlog-06-cover.webp" alt="实习日记 Vol.6"><span class="m-arrow">→</span></div>
+          <figcaption><h4>实习日记 Vol.6</h4><span class="tag">VLOG · 02:57</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="实习日记 Vol.7" data-type="VLOG" data-dur="03:21"
+                data-video="assets/works/vlog-07.mp4" data-poster="assets/works/vlog-07-cover.webp">
+          <div class="m-thumb"><img loading="lazy" src="assets/works/vlog-07-cover.webp" alt="实习日记 Vol.7"><span class="m-arrow">→</span></div>
+          <figcaption><h4>实习日记 Vol.7</h4><span class="tag">VLOG · 03:21</span></figcaption>
+        </figure>
+        <figure class="m-card" data-title="考公日记" data-type="VLOG" data-dur="03:09"
+                data-video="assets/works/vlog-08.mp4" data-poster="assets/works/vlog-08-cover.webp">
+          <div class="m-thumb"><img loading="lazy" src="assets/works/vlog-08-cover.webp" alt="考公日记"><span class="m-arrow">→</span></div>
+          <figcaption><h4>考公日记</h4><span class="tag">VLOG · 03:09</span></figcaption>
+        </figure>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ 03 WHAT I DO ============ -->
+<section id="whatido" class="whatido">
+  <div class="sec-head reveal">
+    <div class="label">04 — WHAT I DO</div>
+    <h2>我能做什么</h2>
+  </div>
+  <div class="caps reveal">
+    <div class="cap">
+      <span class="cap-idx">01</span>
+      <div class="cap-body">
+        <h3>AI Video</h3>
+        <p>把想法交给模型，也把控制权留在手里。从提示词、分镜到生成素材的筛选与重组，让 AI 成为可被导演的摄影机。</p>
+      </div>
+    </div>
+    <div class="cap">
+      <span class="cap-idx">02</span>
+      <div class="cap-body">
+        <h3>Video Editing</h3>
+        <p>剪辑的节奏、画面的调色、声音的层次——一条片子是"好看"还是"记得住"，差别通常都在这里。</p>
+      </div>
+    </div>
+    <div class="cap">
+      <span class="cap-idx">03</span>
+      <div class="cap-body">
+        <h3>Short Video Direction</h3>
+        <p>竖屏语境的选题、脚本与镜头设计。前三秒抓住人，剩下的时间把故事讲完。</p>
+      </div>
+    </div>
+    <div class="cap">
+      <span class="cap-idx">04</span>
+      <div class="cap-body">
+        <h3>Content Creation</h3>
+        <p>从选题、生产到发布与复盘，一个人也能跑完内容的全流程，并把每个环节的审美标准统一起来。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 04 ABOUT ============ -->
+<section id="about" class="about">
+  <div class="sec-head reveal">
+    <div class="label">05 — ABOUT</div>
+    <h2>关于我</h2>
+  </div>
+  <div class="about-grid reveal">
+    <div class="about-text">
+      <p class="lead">
+        我是小锅，一个用 AI 和剪辑讲故事的视觉创作者。<br>
+        工作介于两件事之间：一边是 AI 生成的新影像语言，一边是电影化的剪辑与叙事节奏。
+      </p>
+      <p>
+        我相信工具会一直变，但让人停留的永远是情绪和故事。所以我习惯把一条片子从选题、脚本、分镜，
+        一路做到生成、剪辑、调色与发布——让每一个镜头都为同一个想法服务。
+      </p>
+      <p>
+        现在主要在做的，是短视频、AI 动画和品牌向的视觉内容；也在持续研究 AI 影像到底还能被推到多远。
+      </p>
+      <p class="aside"><!-- 占位：待用户提供的结语，位置保留 --></p>
+    </div>
+    <div class="about-photo">
+      <img loading="lazy" src="assets/about-portrait.webp" alt="小锅zn 肖像">
+    </div>
+  </div>
+</section>
+
+<!-- ============ 05 CONTACT ============ -->
+<section id="contact" class="contact">
+  <div class="sec-head reveal">
+    <div class="label">06 — CONTACT</div>
+  </div>
+  <div class="contact-body reveal">
+    <h2 class="contact-title">LET'S<br>CREATE<span class="dot">.</span></h2>
+    <div class="contact-grid">
+      <div class="c-item">
+        <span class="c-label">EMAIL</span>
+        <a href="mailto:18434836247@163.com" class="c-value">18434836247@163.com</a>
+      </div>
+      <div class="c-item">
+        <span class="c-label">SOCIAL</span>
+        <span class="c-value">抖音 <em style="font-style:normal;color:var(--purple)">@xiaoguozn123</em></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>© 2026 小锅ZN</span>
+  <span>MADE BY XIAOGUOZN</span>
+</footer>
+
+<!-- ============ 作品播放弹层 ============ -->
+<div class="lb" id="lb" aria-hidden="true">
+  <div class="lb-head">
+    <div class="lb-title"><span class="lb-num"></span><h4></h4><span class="lb-type"></span></div>
+    <div class="lb-actions">
+      <button class="lb-tab" data-view="film">FILM</button>
+      <button class="lb-tab" data-view="process">PROCESS</button>
+      <button class="lb-close" aria-label="关闭">✕</button>
+    </div>
+  </div>
+  <div class="lb-stage">
+    <video id="lbVideo" controls playsinline preload="none"></video>
+    <img id="lbProcess" alt="工程文件" hidden>
+    <div class="lb-link" id="lbLink" hidden>
+      <span class="lb-link-tag" id="lbLinkTag"></span>
+      <h3 class="lb-link-title" id="lbLinkTitle"></h3>
+      <p class="lb-link-note">该作品发布于抖音<br>点击下方按钮观看完整视频</p>
+      <a class="lb-btn" id="lbBtn" href="#" target="_blank" rel="noopener">在抖音观看 →</a>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var root = document.documentElement;
+  var loader = document.getElementById('loader');
+  var nav = document.getElementById('nav');
+  var burger = document.getElementById('burger');
+  var menu = document.getElementById('mobileMenu');
+  var figureWrap = document.getElementById('figureWrap');
+  var hero = document.querySelector('.hero');
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- 进场时序 ---------- */
+  window.addEventListener('load', function(){
+    setTimeout(function(){ loader.classList.add('done'); }, 1550);
+    setTimeout(function(){ nav.classList.add('visible'); }, 2000);
+  });
+  /* 兜底：资源异常时也放行 */
+  setTimeout(function(){ loader.classList.add('done'); nav.classList.add('visible'); }, 4200);
+
+  /* ---------- 移动端菜单 ---------- */
+  burger.addEventListener('click', function(){
+    burger.classList.toggle('open');
+    menu.classList.toggle('open');
+  });
+  menu.querySelectorAll('a').forEach(function(a){
+    a.addEventListener('click', function(){
+      burger.classList.remove('open'); menu.classList.remove('open');
+    });
+  });
+
+  /* ---------- 平滑插值状态 ---------- */
+  var mx = innerWidth/2, my = innerHeight/2;      // 真实鼠标
+  var sx = mx, sy = my;                            // 插值后鼠标（光源）
+  var tpx = 0, tpy = 0, spx = 0, spy = 0;          // 视差目标/当前 (-1~1)
+  var proxT = 0, prox = 0;                         // 接近度目标/当前
+
+  window.addEventListener('pointermove', function(e){
+    mx = e.clientX; my = e.clientY;
+    tpx = (e.clientX / innerWidth  - .5) * 2;
+    tpy = (e.clientY / innerHeight - .5) * 2;
+  }, { passive:true });
+
+  /* ---------- 主循环 ---------- */
+  function loop(){
+    /* 光源与视差插值（Apple 式缓动） */
+    sx += (mx - sx) * .07;
+    sy += (my - sy) * .07;
+    spx += (tpx - spx) * .05;
+    spy += (tpy - spy) * .05;
+
+    /* 鼠标与人物的距离 → 接近度 */
+    var r = figureWrap.getBoundingClientRect();
+    var fcx = r.left + r.width/2, fcy = r.top + r.height/2;
+    var dx = mx - fcx, dy = my - fcy;
+    var d = Math.sqrt(dx*dx + dy*dy);
+    proxT = Math.max(0, Math.min(1, 1 - (d - r.width*.32) / 480));
+
+    prox += (proxT - prox) * .06;
+
+    if(!reduceMotion){
+      root.style.setProperty('--mx', sx + 'px');
+      root.style.setProperty('--my', sy + 'px');
+      root.style.setProperty('--prox', prox.toFixed(3));
+      /* 分层位移：背景 2px / 人物 4px / 轮廓光 7px */
+      root.style.setProperty('--px-bg',  (-spx*2).toFixed(2));
+      root.style.setProperty('--py-bg',  (-spy*1.4).toFixed(2));
+      root.style.setProperty('--px-sub', (-spx*4).toFixed(2));
+      root.style.setProperty('--py-sub', (-spy*2.8).toFixed(2));
+      root.style.setProperty('--px-rim', (-spx*7).toFixed(2));
+      root.style.setProperty('--py-rim', (-spy*5).toFixed(2));
+      /* 呼吸感：人物 6.5s 微缩放 / 轮廓光 5.5s 呼吸（幅度极小，"发现式"动效） */
+      var t = Date.now()/1000;
+      root.style.setProperty('--subj-scale', (1 + Math.sin(t*2*Math.PI/6.5)*.006).toFixed(4));
+      root.style.setProperty('--rim-breath', (Math.sin(t*2*Math.PI/5.5)*.12).toFixed(3));
+    }
+
+    /* 滚动电影式转场 */
+    var vh = innerHeight;
+    var p = Math.max(0, Math.min(1, scrollY / (vh*.92)));
+    root.style.setProperty('--scroll', p.toFixed(3));
+    var hint = document.querySelector('.scroll-hint');
+    if(hint) hint.style.opacity = p > .04 ? 0 : '';
+
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  /* ---------- 区块浮现 ---------- */
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(en){
+      if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); }
+    });
+  }, { threshold:.15 });
+  document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+
+  /* ---------- 作品播放弹层 ---------- */
+  var lb = document.getElementById('lb');
+  var lbVideo = document.getElementById('lbVideo');
+  var lbProcess = document.getElementById('lbProcess');
+  var lbLink = document.getElementById('lbLink');
+  var lbLinkTag = document.getElementById('lbLinkTag');
+  var lbLinkTitle = document.getElementById('lbLinkTitle');
+  var lbBtn = document.getElementById('lbBtn');
+  var lbNum = lb.querySelector('.lb-num');
+  var lbName = lb.querySelector('.lb-title h4');
+  var lbType = lb.querySelector('.lb-type');
+  var tabs = lb.querySelectorAll('.lb-tab');
+  var current = null;
+
+  function setView(view){
+    tabs.forEach(function(t){ t.classList.toggle('on', t.dataset.view === view); });
+    if(view === 'film'){
+      lbProcess.hidden = true; lbLink.hidden = true; lbVideo.hidden = false;
+      if(current && current.dataset.video){
+        if(!lbVideo.getAttribute('src')) lbVideo.src = current.dataset.video;
+        lbVideo.play().catch(function(){});
+      }
+    } else if(view === 'link'){
+      lbVideo.pause(); lbVideo.hidden = true; lbProcess.hidden = true;
+      lbLink.hidden = false;
+    } else {
+      lbVideo.pause();
+      lbVideo.hidden = true; lbLink.hidden = true; lbProcess.hidden = false;
+    }
+  }
+
+  function openWork(el){
+    current = el;
+    var numEl = el.querySelector('.num');
+    lbNum.textContent = numEl ? numEl.textContent : '';
+    lbName.textContent = el.dataset.title;
+    lbType.textContent = el.dataset.type + (el.dataset.dur ? ' · ' + el.dataset.dur : '');
+    var hasVideo = !!el.dataset.video, hasProc = !!el.dataset.process, hasLink = !!el.dataset.link;
+    tabs.forEach(function(t){
+      if(t.dataset.view === 'film') t.hidden = !hasVideo;
+      if(t.dataset.view === 'process') t.hidden = !hasProc;
+    });
+    if(hasProc){ lbProcess.src = el.dataset.process; } else { lbProcess.removeAttribute('src'); }
+    lbVideo.poster = el.dataset.poster || '';
+    if(hasVideo){ lbVideo.src = el.dataset.video; } else { lbVideo.removeAttribute('src'); lbVideo.load(); }
+    if(hasLink){
+      lbBtn.href = el.dataset.link;
+      lbLinkTag.textContent = el.dataset.type;
+      lbLinkTitle.textContent = el.dataset.title;
+    }
+    lb.classList.add('open');
+    lb.setAttribute('aria-hidden','false');
+    document.body.style.overflow = 'hidden';
+    setView(hasVideo ? 'film' : (hasProc ? 'process' : 'link'));
+  }
+  function closeLb(){
+    lb.classList.remove('open');
+    lb.setAttribute('aria-hidden','true');
+    document.body.style.overflow = '';
+    lbVideo.pause();
+    setTimeout(function(){ lbVideo.removeAttribute('src'); lbVideo.load(); }, 400);
+  }
+
+  document.querySelectorAll('.work, .m-card').forEach(function(el){
+    el.addEventListener('click', function(){ openWork(el); });
+  });
+
+  /* ---------- 封面自适应：竖版识别 + 居中留白量（供箭头定位） ---------- */
+  function syncMedia(){
+    document.querySelectorAll('.work-media').forEach(function(m){
+      var img = m.querySelector('img');
+      if(!img || !img.naturalWidth) return;
+      m.classList.toggle('portrait', img.naturalHeight > img.naturalWidth);
+      var ov = Math.max(0, (m.clientWidth - img.clientWidth) / 2);
+      m.style.setProperty('--ov', ov.toFixed(1) + 'px');
+    });
+  }
+  document.querySelectorAll('.work-media img').forEach(function(img){
+    if(img.complete) syncMedia(); else img.addEventListener('load', syncMedia);
+  });
+  window.addEventListener('load', syncMedia);
+  window.addEventListener('resize', syncMedia);
+  setTimeout(syncMedia, 700);
+  tabs.forEach(function(t){
+    t.addEventListener('click', function(){ setView(t.dataset.view); });
+  });
+  lb.querySelector('.lb-close').addEventListener('click', closeLb);
+  lb.addEventListener('click', function(e){ if(e.target === lb) closeLb(); });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && lb.classList.contains('open')) closeLb();
+  });
+
+  /* ---------- 导航滚动高亮 ---------- */
+  var navLinks = document.querySelectorAll('.nav-links a');
+  var spyTargets = ['works','more','about','contact'].map(function(id){ return document.getElementById(id); }).filter(Boolean);
+  var spy = new IntersectionObserver(function(es){
+    es.forEach(function(en){
+      if(en.isIntersecting){
+        var id = en.target.id;
+        navLinks.forEach(function(a){
+          var href = a.getAttribute('href');
+          a.classList.toggle('active', href === '#' + id || (id === 'more' && href === '#works'));
+        });
+      }
+    });
+  }, { rootMargin:'-45% 0px -50% 0px' });
+  spyTargets.forEach(function(s){ spy.observe(s); });
+})();
+</script>
+</body>
+</html>
