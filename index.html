@@ -120,12 +120,12 @@ nav.visible{opacity:1;transform:none}
     radial-gradient(58% 72% at 74% 42%, rgba(90,75,140,.16), transparent 62%),
     radial-gradient(90% 90% at 50% 110%, rgba(17,17,18,.9), transparent 55%);
 }
-/* 鼠标隐形光源 */
+/* 鼠标隐形光源：仅限左侧文字区，不覆盖人物层（保证人脸始终清晰） */
 .hero .mouse-light{
-  position:absolute;inset:-20%;pointer-events:none;
-  background:radial-gradient(340px 340px at var(--mx) var(--my), rgba(118,101,181,.13), transparent 70%);
+  position:absolute;inset:0;right:auto;width:52%;pointer-events:none;
+  background:radial-gradient(340px 340px at var(--mx) var(--my), rgba(118,101,181,.10), transparent 70%);
   mix-blend-mode:screen;
-  opacity:calc(.55 + var(--prox)*.6);
+  opacity:.5;
 }
 /* 滚动压暗层 */
 .hero .dim{
@@ -148,24 +148,23 @@ nav.visible{opacity:1;transform:none}
 /* 背景层：照片背景（素材已长羽化 + CSS 径向渐晕二次柔化，边缘完全溶解），位移最小（2px） */
 .layer.bg{
   background-image:url("assets/bg_2x.webp");
-  filter:brightness(calc(.95 + var(--prox,0)*.12));
+  filter:brightness(.95);
   transform:translate(calc(var(--px-bg,0)*1px),calc(var(--py-bg,0)*1px)) scale(1.06);
   -webkit-mask-image:radial-gradient(72% 78% at 50% 46%, #000 30%, rgba(0,0,0,.58) 62%, rgba(0,0,0,0) 97%);
   mask-image:radial-gradient(72% 78% at 50% 46%, #000 30%, rgba(0,0,0,.58) 62%, rgba(0,0,0,0) 97%);
 }
-/* 人物层：羽化透明边缘 + 位移稍大（4px）+ JS 呼吸缩放 */
+/* 人物层：羽化透明边缘 + 位移稍大（4px）+ JS 呼吸缩放（亮度恒定，不随鼠标变化） */
 .layer.subject{background-image:url("assets/subject_2x.webp");
-  filter:brightness(calc(1 + var(--prox,0)*.1));
   transform:translate(calc(var(--px-sub,0)*1px),calc(var(--py-sub,0)*1px)) scale(var(--subj-scale,1));
   -webkit-mask-image:radial-gradient(84% 90% at 50% 46%, #000 54%, rgba(0,0,0,.74) 78%, rgba(0,0,0,0) 100%);
   mask-image:radial-gradient(84% 90% at 50% 46%, #000 54%, rgba(0,0,0,.74) 78%, rgba(0,0,0,0) 100%);
 }
-/* 轮廓光层：右侧暗夜紫轮廓光，位移最大（7px），随接近度/滚动增强，JS 呼吸 */
+/* 轮廓光层：固定在人物右上角发丝边缘，远离面部，不随鼠标增强 */
 .layer.rim{
-  background:radial-gradient(46% 52% at 66% 34%, rgba(118,101,181,.32), transparent 68%);
+  background:radial-gradient(34% 42% at 80% 22%, rgba(118,101,181,.26), transparent 70%);
   mix-blend-mode:screen;
   transform:translate(calc(var(--px-rim,0)*1px),calc(var(--py-rim,0)*1px));
-  opacity:calc(.66 + var(--prox,0)*.5 + var(--scroll,0)*.4 + var(--rim-breath,0));
+  opacity:calc(.5 + var(--scroll,0)*.4 + var(--rim-breath,0)*.5);
 }
 
 /* 人物整体浮现动画（进场） */
