@@ -251,6 +251,7 @@ nav.visible{opacity:1;transform:none}
 section{position:relative}
 .sec-head{padding:20vh min(6vw,84px) 8vh}
 #more .sec-head{padding-top:8vh}
+#about .sec-head{padding-top:8vh}
 .sec-head .label{
   font-size:11px;letter-spacing:.4em;color:var(--purple);
   margin-bottom:22px;
@@ -277,10 +278,10 @@ section{position:relative}
   color:var(--text2);letter-spacing:.3em;margin-left:1.6vw;
 }
 .wg-cnt{font-size:11px;letter-spacing:.3em;color:var(--muted);margin-left:auto}
-/* 分类标题下的小副标题（换行显示在标题下方） */
+/* 分类标题下的二级小标题（AI视频（自制）等，与 AI 游戏剧情同级同字号） */
 .wg-sub{
-  flex-basis:100%;font-size:12.5px;font-weight:500;
-  letter-spacing:.3em;color:var(--text2);margin-top:.8vh;
+  flex-basis:100%;font-size:clamp(24px,2.8vw,40px);font-weight:600;
+  letter-spacing:.02em;color:var(--text);margin-top:.8vh;
 }
 /* 作品总览索引：进入区块先看全局，再逐件细看 */
 .works-index{
@@ -333,13 +334,13 @@ section{position:relative}
   scroll-margin-top:12vh;
 }
 .work-meta{
-  display:flex;align-items:baseline;gap:12px;
+  display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
   padding-top:15px;
 }
-/* 序号：紫色数字（卡片尺寸） */
+/* 序号：紫色数字（原大字号） */
 .work-meta .num{
   position:relative;
-  font-size:21px;font-weight:800;line-height:.9;
+  font-size:clamp(26px,3vw,46px);font-weight:800;line-height:.9;
   letter-spacing:-.015em;color:var(--purple);
   font-variant-numeric:tabular-nums;
   transition:color .45s var(--ease),text-shadow .5s var(--ease);
@@ -352,12 +353,12 @@ section{position:relative}
 .work:hover .work-meta .num{color:#9a8ad9;text-shadow:0 0 30px rgba(118,101,181,.5)}
 .work:hover .work-meta .num::after{opacity:1}
 .work-meta .name{
-  font-size:17px;font-weight:600;letter-spacing:.01em;
+  font-size:clamp(21px,2.5vw,32px);font-weight:600;letter-spacing:.01em;
   color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   transition:color .45s var(--ease),transform .55s var(--ease);
 }
 .work-meta .type{
-  margin-left:auto;font-size:9.5px;letter-spacing:.2em;color:var(--muted);
+  margin-left:auto;font-size:11px;letter-spacing:.24em;color:var(--muted);
   white-space:nowrap;
   transition:color .45s var(--ease);
 }
@@ -463,7 +464,7 @@ section{position:relative}
 }
 .m-head .num{
   position:relative;
-  font-size:21px;font-weight:800;line-height:.9;
+  font-size:clamp(26px,3vw,46px);font-weight:800;line-height:.9;
   letter-spacing:-.015em;color:var(--purple);
   font-variant-numeric:tabular-nums;
   transition:color .45s var(--ease);
@@ -474,11 +475,11 @@ section{position:relative}
   opacity:.55;
 }
 .m-head h4{
-  font-size:17px;font-weight:600;letter-spacing:.01em;color:var(--text2);
+  font-size:clamp(21px,2.5vw,32px);font-weight:600;letter-spacing:.01em;color:var(--text2);
   margin-top:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .m-head .tag{
-  margin-left:auto;margin-top:0;font-size:9.5px;letter-spacing:.2em;white-space:nowrap;
+  margin-left:auto;margin-top:0;font-size:11px;letter-spacing:.24em;white-space:nowrap;
 }
 .m-card:hover .m-head .num{color:#9a8ad9}
 .m-card:hover .m-head h4{color:var(--text)}
@@ -492,7 +493,7 @@ section{position:relative}
 .m-thumb.r43{aspect-ratio:4/3}
 /* 精选区 AI VIDEO 组下方的游戏剧情卡片行 */
 .game-strip{padding:0 0 11vh}
-.game-strip .lv2-head{margin-bottom:26px}
+.game-strip .lv2-head{margin-bottom:26px;font-size:clamp(24px,2.8vw,40px)}
 .m-thumb.typo{
   aspect-ratio:3/4;
   display:flex;flex-direction:column;align-items:flex-start;
@@ -703,14 +704,14 @@ footer{
   .m-grid{grid-template-columns:repeat(2,1fr);gap:18px}
   .m-card figcaption h4{font-size:13px}
   .m-head{gap:10px;margin-bottom:10px}
-  .m-head h4{font-size:15px}
+  .m-head h4{font-size:21px}
   .m-head .tag{width:100%;margin-left:0}
   /* 总览索引移动端两列 */
   .works-index{grid-template-columns:repeat(2,1fr);gap:16px 14px;padding:0 6vw 9vh}
   .wi-num{font-size:16px}
   .wi-name{font-size:12px}
   .wi-kind{display:none}
-  .work-meta .num{font-size:17px}
+  .work-meta .num{font-size:clamp(26px,7.5vw,36px)}
   .work-media img{filter:brightness(.96)}
   .work-arrow{opacity:1;transform:none;right:14px;bottom:12px}
   .work-play{display:none}
