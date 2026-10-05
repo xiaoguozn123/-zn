@@ -264,7 +264,7 @@ section{position:relative}
 /* 分类大标题：AI VIDEO / VLOG */
 .work-group{
   display:flex;align-items:baseline;gap:2.4vw;flex-wrap:wrap;
-  padding-bottom:2.6vh;margin-bottom:7vh;
+  padding-bottom:2.6vh;margin-bottom:5vh;
   border-bottom:1px solid #141416;
 }
 .wg-title{
@@ -288,7 +288,7 @@ section{position:relative}
   text-decoration:none;
 }
 .wi-thumb{
-  position:relative;overflow:hidden;aspect-ratio:16/9;
+  position:relative;overflow:hidden;aspect-ratio:4/3;
   background:#0b0b0c;border:1px solid #17171a;
   transition:border-color .5s var(--ease);
 }
@@ -316,69 +316,76 @@ section{position:relative}
 }
 .wi-card:hover .wi-name{color:var(--text)}
 .wi-kind{font-size:9.5px;letter-spacing:.22em;color:var(--muted);margin-left:auto;white-space:nowrap}
+/* 分类内作品行：每个分类一排横排小卡片 */
+.work-row{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:34px 28px;
+  padding-bottom:11vh;
+}
 .work{
-  padding:0 0 13vh;
+  padding:0;
   cursor:pointer;
   scroll-margin-top:12vh;
 }
-.work:last-child{padding-bottom:6vh}
 .work-meta{
-  display:flex;align-items:baseline;gap:1.7vw;
-  padding-bottom:26px;
+  display:flex;align-items:baseline;gap:12px;
+  padding-top:15px;
 }
-/* 序号：大号紫色数字，醒目 */
+/* 序号：紫色数字（卡片尺寸） */
 .work-meta .num{
   position:relative;
-  font-size:clamp(26px,3vw,46px);font-weight:800;line-height:.9;
+  font-size:21px;font-weight:800;line-height:.9;
   letter-spacing:-.015em;color:var(--purple);
   font-variant-numeric:tabular-nums;
   transition:color .45s var(--ease),text-shadow .5s var(--ease);
 }
 .work-meta .num::after{
-  content:'';position:absolute;left:0;right:.04em;bottom:-9px;height:1px;
+  content:'';position:absolute;left:0;right:.04em;bottom:-7px;height:1px;
   background:linear-gradient(90deg,var(--purple),rgba(118,101,181,0));
   opacity:.55;transition:opacity .45s var(--ease);
 }
 .work:hover .work-meta .num{color:#9a8ad9;text-shadow:0 0 30px rgba(118,101,181,.5)}
 .work:hover .work-meta .num::after{opacity:1}
 .work-meta .name{
-  font-size:clamp(21px,2.5vw,32px);font-weight:600;letter-spacing:.01em;
-  color:var(--text2);
+  font-size:17px;font-weight:600;letter-spacing:.01em;
+  color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   transition:color .45s var(--ease),transform .55s var(--ease);
 }
 .work-meta .type{
-  margin-left:auto;font-size:11px;letter-spacing:.24em;color:var(--muted);
+  margin-left:auto;font-size:9.5px;letter-spacing:.2em;color:var(--muted);
+  white-space:nowrap;
   transition:color .45s var(--ease);
 }
 .work-media{
-  position:relative;overflow:visible;
-  background:transparent;
-  display:flex;justify-content:center;
-}
-/* 封面完整展示（不裁切），高度受控：一屏内能看到完整作品版面，不占满全屏 */
-.work-media img{
-  display:block;width:auto;height:auto;
-  max-width:100%;max-height:58vh;
+  position:relative;overflow:hidden;
+  background:#0b0b0c;
+  aspect-ratio:4/3;
   border:1px solid #141416;
-  transition:transform 1.1s var(--ease),filter .7s var(--ease);
-  filter:brightness(.92);
+  transition:border-color .5s var(--ease);
 }
-.work-media.portrait img{max-height:76vh}
+/* 封面 4:3 完整展示（海报即 4:3，无裁切） */
+.work-media img{
+  display:block;width:100%;height:100%;object-fit:cover;
+  transition:transform 1.1s var(--ease),filter .7s var(--ease);
+  filter:brightness(.9);
+}
+.work-media.portrait img{max-height:none}
 .work-arrow{
-  position:absolute;right:calc(var(--ov,0px) + 26px);bottom:22px;
-  font-size:18px;color:var(--purple);
+  position:absolute;right:16px;bottom:14px;
+  font-size:16px;color:var(--purple);
   opacity:0;transform:translateX(-10px);
   transition:opacity .45s var(--ease),transform .55s var(--ease);
 }
 .work-play{
-  position:absolute;left:calc(var(--ov,0px) + 26px);bottom:22px;
-  font-size:10.5px;letter-spacing:.34em;color:var(--text2);
+  position:absolute;left:16px;bottom:16px;
+  font-size:9.5px;letter-spacing:.3em;color:var(--text2);
   display:flex;align-items:center;gap:10px;
   opacity:0;transform:translateY(6px);
   transition:opacity .5s var(--ease),transform .5s var(--ease);
 }
-.work:hover .work-media img{transform:scale(1.028);filter:brightness(1)}
-.work:hover .work-meta .name{color:var(--text);transform:translateX(10px)}
+.work:hover .work-media{border-color:rgba(118,101,181,.5)}
+.work:hover .work-media img{transform:scale(1.03);filter:brightness(1)}
+.work:hover .work-meta .name{color:var(--text);transform:translateX(4px)}
 .work:hover .work-meta .type{color:var(--purple)}
 .work:hover .work-arrow{opacity:1;transform:none}
 .work:hover .work-play{opacity:1;transform:none}
@@ -654,8 +661,8 @@ footer{
   /* 下方区块移动端重排 */
   .sec-head{padding:14vh 6vw 6vh}
   .works-list{padding:0 6vw 14vh}
-  .work{padding-bottom:9vh}
-  .work-meta{flex-wrap:wrap;gap:12px;padding-bottom:18px}
+  .work-row{grid-template-columns:repeat(2,1fr);gap:24px 16px;padding-bottom:8vh}
+  .work-meta{flex-wrap:wrap;gap:10px;padding-top:12px}
   .work-meta .type{margin-left:0;width:100%}
   .work-group{margin-bottom:5vh}
   .wg-title .cn{margin-left:0;width:100%}
@@ -668,10 +675,9 @@ footer{
   .wi-num{font-size:16px}
   .wi-name{font-size:12px}
   .wi-kind{display:none}
-  .work-meta .num{font-size:clamp(26px,7.5vw,36px)}
-  .work-media img{filter:brightness(.96);max-height:52vh}
-  .work-media.portrait img{max-height:66vh}
-  .work-arrow{opacity:1;transform:none;right:calc(var(--ov,0px) + 18px);bottom:16px}
+  .work-meta .num{font-size:17px}
+  .work-media img{filter:brightness(.96)}
+  .work-arrow{opacity:1;transform:none;right:14px;bottom:12px}
   .work-play{display:none}
   .cap{padding:26px 6vw;flex-direction:column;gap:12px}
   .cap-body p{max-width:none;font-size:13.5px}
@@ -791,6 +797,8 @@ footer{
       <span class="wg-cnt">3 WORKS</span>
     </div>
 
+    <div class="work-row">
+
     <article id="w-01" class="work reveal" data-title="凤尾高中生" data-type="AI ANIMATION" data-dur="02:46"
              data-video="assets/works/work-01.mp4" data-poster="assets/works/work-01-poster.webp"
              data-process="assets/works/work-01-process.webp">
@@ -835,6 +843,7 @@ footer{
         <span class="work-play">PLAY</span>
       </div>
     </article>
+    </div>
 
     <div class="game-strip reveal">
       <div class="lv2-head">AI 游戏剧情 <span class="cnt">3 VIDEOS</span></div>
@@ -861,6 +870,8 @@ footer{
       <h3 class="wg-title">VLOG <span class="cn">进阶版</span></h3>
       <span class="wg-cnt">2 WORKS</span>
     </div>
+
+    <div class="work-row">
 
     <article id="w-05" class="work reveal" data-title="准大一 · 开学焦虑" data-type="VLOG" data-dur="03:08"
              data-video="assets/works/work-04.mp4" data-poster="assets/works/work-04-poster.webp"
@@ -891,11 +902,14 @@ footer{
         <span class="work-play">PLAY</span>
       </div>
     </article>
+    </div>
 
     <div class="work-group reveal">
       <h3 class="wg-title">混剪</h3>
       <span class="wg-cnt">1 WORK</span>
     </div>
+
+    <div class="work-row">
 
     <article id="w-04" class="work reveal" data-title="旅行日记" data-type="旅行混剪" data-dur="00:38"
              data-video="assets/works/work-06.mp4" data-poster="assets/works/mix-01-cover.webp"
@@ -911,6 +925,7 @@ footer{
         <span class="work-play">PLAY</span>
       </div>
     </article>
+    </div>
 
   </div>
 </section>
