@@ -334,7 +334,7 @@ section{position:relative}
   scroll-margin-top:12vh;
 }
 .work-meta{
-  display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+  display:flex;align-items:baseline;gap:12px;flex-wrap:nowrap;
   padding-top:15px;
 }
 /* 序号：紫色数字（原大字号） */
@@ -353,6 +353,7 @@ section{position:relative}
 .work:hover .work-meta .num{color:#9a8ad9;text-shadow:0 0 30px rgba(118,101,181,.5)}
 .work:hover .work-meta .num::after{opacity:1}
 .work-meta .name{
+  flex:1 1 auto;min-width:0;
   font-size:clamp(21px,2.5vw,32px);font-weight:600;letter-spacing:.01em;
   color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   transition:color .45s var(--ease),transform .55s var(--ease);
@@ -578,25 +579,6 @@ section{position:relative}
   margin-bottom:14vh;
 }
 .contact-title .dot{color:var(--purple);-webkit-text-fill-color:var(--purple)}
-.contact-grid{
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
-  gap:1px;background:#141416;border:1px solid #141416;
-}
-.c-item{background:#050505;padding:clamp(24px,2.6vw,36px)}
-.c-label{display:block;font-size:10.5px;letter-spacing:.34em;color:var(--purple);margin-bottom:16px}
-.c-value{
-  display:inline-block;font-size:15px;color:var(--text);letter-spacing:.02em;
-  position:relative;transition:color .4s var(--ease);
-}
-a.c-value::after{
-  content:"";position:absolute;left:0;right:0;bottom:-5px;height:1px;
-  background:var(--purple);transform:scaleX(0);transform-origin:left;
-  transition:transform .5s var(--ease);
-}
-a.c-value:hover::after{transform:scaleX(1)}
-.c-value.placeholder{color:var(--muted);font-size:14px}
-.c-value.placeholder::after{display:none}
-
 footer{
   padding:56px min(6vw,84px);
   border-top:1px solid #141416;
@@ -695,8 +677,8 @@ footer{
   .sec-head{padding:14vh 6vw 6vh}
   .works-list{padding:0 6vw 14vh}
   .work-row{grid-template-columns:repeat(2,1fr);gap:24px 16px;padding-bottom:8vh}
-  .work-meta{flex-wrap:wrap;gap:10px;padding-top:12px}
-  .work-meta .type{margin-left:0;width:100%}
+  .work-meta{flex-wrap:nowrap;gap:10px;padding-top:12px}
+  .work-meta .type{margin-left:auto;width:auto}
   .work-group{margin-bottom:5vh}
   .wg-title .cn{margin-left:0;width:100%}
   .more-list{padding:0 6vw 14vh}
@@ -721,7 +703,6 @@ footer{
   .about-photo{max-width:min(70vw,340px)}
   .contact-body{padding:0 6vw 12vh}
   .contact-title{margin-bottom:8vh}
-  .contact-grid{grid-template-columns:1fr}
   footer{padding:40px 6vw;font-size:10px}
   .lb-head{flex-direction:column;align-items:flex-start;padding:18px 6vw;gap:14px}
   .lb-title h4{white-space:normal}
@@ -1257,16 +1238,6 @@ footer{
   </div>
   <div class="contact-body reveal">
     <h2 class="contact-title">LET'S<br>CREATE<span class="dot">.</span></h2>
-    <div class="contact-grid">
-      <div class="c-item">
-        <span class="c-label">EMAIL</span>
-        <a href="mailto:18434836247@163.com" class="c-value">18434836247@163.com</a>
-      </div>
-      <div class="c-item">
-        <span class="c-label">SOCIAL</span>
-        <span class="c-value">抖音 <em style="font-style:normal;color:var(--purple)">@xiaoguozn123</em></span>
-      </div>
-    </div>
   </div>
 </section>
 
