@@ -289,7 +289,7 @@ section{position:relative}
   padding:0 min(6vw,84px) 13vh;
 }
 .wi-card{
-  display:block;text-align:left;cursor:pointer;
+  display:flex;flex-direction:column-reverse;text-align:left;cursor:pointer;
   background:none;border:none;padding:0;color:inherit;font:inherit;
   text-decoration:none;
 }
@@ -311,17 +311,17 @@ section{position:relative}
 .wi-card:hover .wi-thumb{border-color:rgba(118,101,181,.5)}
 .wi-card:hover .wi-thumb img{transform:scale(1.05);filter:brightness(.92) saturate(1)}
 .wi-card:hover .wi-overlay{opacity:.45}
-.wi-row{display:flex;align-items:baseline;gap:12px;margin-top:15px}
+.wi-row{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
 .wi-num{
-  font-size:20px;font-weight:800;line-height:1;color:var(--purple);
+  font-size:26px;font-weight:800;line-height:1;color:var(--purple);
   font-variant-numeric:tabular-nums;letter-spacing:-.01em;
 }
 .wi-name{
-  font-size:13.5px;color:var(--text2);letter-spacing:.02em;
+  font-size:18px;color:var(--text2);letter-spacing:.02em;
   transition:color .4s var(--ease);
 }
 .wi-card:hover .wi-name{color:var(--text)}
-.wi-kind{font-size:9.5px;letter-spacing:.22em;color:var(--muted);margin-left:auto;white-space:nowrap}
+.wi-kind{font-size:11px;letter-spacing:.22em;color:var(--muted);margin-left:auto;white-space:nowrap}
 /* 分类内作品行：每个分类一排横排小卡片 */
 .work-row{
   display:grid;grid-template-columns:repeat(3,1fr);
@@ -708,8 +708,8 @@ footer{
   .m-head .tag{width:100%;margin-left:0}
   /* 总览索引移动端两列 */
   .works-index{grid-template-columns:repeat(2,1fr);gap:16px 14px;padding:0 6vw 9vh}
-  .wi-num{font-size:16px}
-  .wi-name{font-size:12px}
+  .wi-num{font-size:20px}
+  .wi-name{font-size:14.5px}
   .wi-kind{display:none}
   .work-meta .num{font-size:clamp(26px,7.5vw,36px)}
   .work-media img{filter:brightness(.96)}
