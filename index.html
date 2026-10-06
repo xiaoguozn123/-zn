@@ -545,7 +545,12 @@ section{position:relative}
 .cap-idx{font-size:11px;letter-spacing:.2em;color:var(--muted);padding-top:6px}
 .cap-body h3{
   font-size:clamp(19px,1.9vw,25px);font-weight:600;color:var(--text);
-  margin-bottom:16px;letter-spacing:.01em;
+  margin-bottom:8px;letter-spacing:.01em;
+}
+/* 标题后的括号副标题：加粗，字号介于标题与正文之间 */
+.cap-sub{
+  font-size:clamp(15px,1.35vw,18px);font-weight:700;color:var(--text);
+  margin-bottom:14px;letter-spacing:.01em;
 }
 .cap-body p{font-size:14px;line-height:2;color:var(--text2);max-width:44ch}
 
@@ -1177,28 +1182,32 @@ footer{
       <span class="cap-idx">01</span>
       <div class="cap-body">
         <h3>AI Video</h3>
-        <p>把想法交给模型，也把控制权留在手里。从提示词、分镜到生成素材的筛选与重组，让 AI 成为可被导演的摄影机。</p>
+        <div class="cap-sub">（让AI参与创作，但不把创作交给AI）</div>
+        <p>用 ChatGPT 辅助脚本，通过豆包等工具生成画面与声音，再结合人工筛选、调整和剪辑，把AI素材真正变成可用的内容。</p>
       </div>
     </div>
     <div class="cap">
       <span class="cap-idx">02</span>
       <div class="cap-body">
         <h3>Video Editing</h3>
-        <p>剪辑的节奏、画面的调色、声音的层次——一条片子是"好看"还是"记得住"，差别通常都在这里。</p>
+        <div class="cap-sub">（剪辑的价值，在于让内容产生节奏和表达）</div>
+        <p>擅长素材取舍、叙事节奏、画面衔接、声音设计与视觉包装，能够处理短视频及横屏长视频内容。</p>
       </div>
     </div>
     <div class="cap">
       <span class="cap-idx">03</span>
       <div class="cap-body">
         <h3>Short Video Direction</h3>
-        <p>竖屏语境的选题、脚本与镜头设计。前三秒抓住人，剩下的时间把故事讲完。</p>
+        <div class="cap-sub">（从“怎么讲”出发，再决定“怎么拍”）</div>
+        <p>关注选题切入、脚本结构、镜头设计与开头吸引力，让内容在有限时长里快速建立信息和观看兴趣。</p>
       </div>
     </div>
     <div class="cap">
       <span class="cap-idx">04</span>
       <div class="cap-body">
-        <h3>Content Creation</h3>
-        <p>从选题、生产到发布与复盘，一个人也能跑完内容的全流程，并把每个环节的审美标准统一起来。</p>
+        <h3>AI Visual Design</h3>
+        <div class="cap-sub">（把一个想法，变成具体的视觉画面）</div>
+        <p>结合AI生成与视觉设计进行角色、场景、画面等内容创作，也会根据主题和内容需求控制整体视觉呈现。</p>
       </div>
     </div>
   </div>
@@ -1214,14 +1223,15 @@ footer{
     <div class="about-text">
       <p class="lead">
         我是小锅，一个用 AI 和剪辑讲故事的视觉创作者。<br>
-        工作介于两件事之间：一边是 AI 生成的新影像语言，一边是电影化的剪辑与叙事节奏。
+        我习惯在两种创作方式之间来回切换：<br>
+        一边尝试用 AI 打开新的视觉表达，一边用剪辑去控制画面的节奏、情绪和叙事。
       </p>
       <p>
-        我相信工具会一直变，但让人停留的永远是情绪和故事。所以我习惯把一条片子从选题、脚本、分镜，
-        一路做到生成、剪辑、调色与发布——让每一个镜头都为同一个想法服务。
+        我相信工具会一直变化，但真正让人记住的，始终是内容和故事。
+        所以我更在意的不是“用了什么工具”，而是怎么从一个想法出发，把选题、脚本、分镜、画面生成、剪辑到最终呈现串起来，让每一个镜头都服务于同一个表达。
       </p>
       <p>
-        现在主要在做的，是短视频、AI 动画和品牌向的视觉内容；也在持续研究 AI 影像到底还能被推到多远。
+        我希望持续探索 AI 在创作中的更多可能——从生成视觉资产，到产出一段完整的影像，最后形成独特的内容表达。
       </p>
       <p class="aside"><!-- 占位：待用户提供的结语，位置保留 --></p>
     </div>
